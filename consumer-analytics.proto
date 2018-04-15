@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package grpc.analytics;
+
+service ConsumerAnalytics {
+	// discovers co-occurance relationships among various activities
+	// from historical events
+	rpc analyzeAffinity(AffinityAnalysisRequest)
+			returns (AffinityAnalysisResponse) {}
+		
+	// finds optimal decision in the presence of trade-offs among multiple
+	// objectives
+	rpc analyzeTradeOff(TradeOffAnalysisRequest)
+			returns (TradeOffAnalysisResponse) {}
+	
+	// recommends a product or a service from the set of candidates based on 
+	// purchase history
+	rpc recommendProduct(ProductRecommenderRequest)
+			returns (TradeOffAnalysisResponse) {}
+}
+
+message AffinityAnalysisRequest {
+	message TransactionRecord {
+		// combination of items purchased in the past
+		repeated string record = 1;
+	}
+	
+	// past transaction history
+	repeated TransactionRecord transactions = 1;
+	
+	// set of items for which the association rules is to be generated
+	message ItemSet {
+		repeated string item = 1;
+	}
+	
+	repeated ItemSet itemsets = 2;
+	
+	// mininum frequency that should be considered from the transaction set
+	double support_threshold = 3;
+	
+	// minumum confidence level that should be met
+	double confidence_threshold = 4;
+}
+
+message AffinityAnalysisResponse {
+	message AffinityAnalysisResponseType {
+		AffinityAnalysisRequest.ItemSet itemset = 1;
+		
+		// generated association rule for a frequent itemset
+		message AssociationRule {
+			// combination of items that matches the frequency threshold (support)
+			repeated string frequent_item = 1;
+			
+			// frequency value of the item set
+			double support = 2;
+			
+			// confidence of the item set
+			double confidence = 3;
+		}
+		
+		repeated AssociationRule association_rules = 2;
+	}
+	
+	repeated AffinityAnalysisResponseType results = 1;
+}
+
+// constraint for an objective
+message TradeOffConstraint {
+	string constraint_name = 1;	// name of the objective
+	string goal = 2;			// goal to be achieved for the objective
+								// possible values: 'min' or 'max'
+	double weight = 3;			// weightage associated to the objective
+								// value can be between 0 to 1, inclusive
+								// sum of all weightage of all the constraints
+								// should be equal to 1
+}
+
+message TradeOffCandidate {
+	string name = 1;			// candidate name
+	
+	message TradeOffObjectiveItem {
+		string constraint_name = 1;
+		double objective_value = 2;
+	}
+	
+	// set of objectives for which trade-off to be determined
+	repeated TradeOffObjectiveItem objectives = 2;
+}
+
+message TradeOffAnalysisRequest {
+	repeated TradeOffConstraint constraints = 1;	// set of constraints to be
+													// applied
+	repeated TradeOffCandidate candidates = 2;		// set of candidates for
+													// which optimal trade-off
+													// to be determined
+	int32 limit = 3;								// number of most optimal
+													// candidate to be returned
+													// in descending order
+}
+
+message TradeOffAnalysisResponse {
+	message TradeOffAnalysisResponseItem {
+		TradeOffCandidate candidate = 1;	// optimal choices
+		double variance = 2;				// deviation from the ideal optimal
+											// value. least value represents
+											// most optimal choice
+	}
+	
+	repeated TradeOffAnalysisResponseItem results = 1;
+}
+
+message Product {
+	string title = 1;
+	
+	message ProductAttribute {
+		string name = 1;				// name of the attribute of a product
+		repeated string value = 2;		// attribute value
+	}
+	
+	// set of attributes of the product
+	repeated ProductAttribute attributes = 2;
+}
+
+message ProductRecommenderRequest {
+	repeated TradeOffConstraint constraints = 1;	// constraints to be applied
+													// to identify the product
+													// for recommendation
+													
+	repeated Product transactions = 2;	// historical transaction of of past
+										// purchases of products of same type
+													
+	repeated Product candidates = 3;	// current set of choices among which
+										// the recommendation is to be made
+													
+	double support_threshold = 4;		// mininum frequency that should be
+										// considered from the transaction set
+													
+	double confidence_threshold = 5;	// minumum confidence level that should
+										// be met
+										
+	int32 limit = 6;					// number of recommendations to be
+										// returned
+}
+
+
+

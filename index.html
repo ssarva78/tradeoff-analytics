@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Consumer Analytics APIs</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div id="top" class="jumbotron text-center" style="background:lightblue;font-family:calibri">
+  <h1>Consumer Analytics</h1>
+</div>
+<br>
+<div class="container" style="font-family:calibri">
+  <div class="row" align="center">
+    <div class="col-sm-4">
+      <h2 style="color:rgb(0,125,200)">Affinity Analytics API</h2><br>
+      <p class="lead">Helps discover co-occurance relationships among various activities from historical events.</p>
+	  <p class="lead">Performs market basket analysis that helps understand the shopping behaviour of the customers</p>
+	  <p><a href="#affinity">more...</a></p>
+    </div>
+    <div class="col-sm-4">
+      <h2 style="color:rgb(0,125,200)">Trade Off Analytics API</h2><br>
+      <p class="lead">Helps take optimal decision in the presence of trade-offs among multiple objectives.</p>
+	  <p class="lead">Helps to choose a product or a service based on multiple characteristics of the service or the product</p>
+	  <p><a href="#tradeoff">more...</a></p>
+    </div>
+    <div class="col-sm-4">
+      <h2 style="color:rgb(0,125,200)">Recommender API</h2><br>        
+      <p class="lead">Recommends a product or a service from the set of candidates based on purchase history</p>
+	  <p class="lead">Combines affinity analysis and trade-off analysis to evaluate candidates across multiple criteria</p>
+	  <p><a href="#recommender">more...</a></p>
+    </div>
+  </div>
+</div>
+<br>
+<hr style="border:node;background-color:lightblue;height:10px">
+<div class="container" style="font-family:calibri">
+  <br><br><br>
+  <h3 id="affinity" style="color:rgb(0,125,200)">Affinity Analytics API</h3>
+  <p><pre><b>RESTful API</b>
+  Method: <kbd>POST</kbd>
+URL Path: <kbd>/api/analytics/affinity</kbd>
+
+<b>gRPC</b>
+ Package: <kbd>grpc.analytics</kbd>
+ Service: <kbd>ConsumerAnalytics</kbd>
+  Method: <kbd>analyzeAffinity</kbd>
+  
+  Click <a href="#proto">here</a> for proto file</pre></p>
+  <br>
+  <p>Affinity Analytics API is based on association rules learning concepts and implements Apriori algorithm to discover the relationships among variables in a transaction set.
+  <p>The API determines the association rules for an item based on the historical transactions, that exceeds minumum confidence level. The API takes the transaction set and the item for which the association rules to be determined as input and returns the association rule for each frequent combination from the historical transaction set along with the confidence level.</p>
+  <p>For the API to be more accurate and effective, the transaction set should have reasonably large set of historical transactions.</p>
+  <p><i><b>Sample Request:</b></i>
+  <pre><code style="color:black">{
+	"transactions": [
+		["milk", "bread"],
+		["butter"],
+		["beer", "diaper"],
+		["milk", "bread", "butter"],
+		["bread"]
+	],
+	"itemsets": [
+		["milk"]
+	],
+	"support_threshold": 0.4,
+	"confidence_threshold":0.5
+  }</code></pre></p>
+  <p>In this example, <code style="color:black">transactions</code> represents list of combinations of items the customer has bought in each of his 5 visits to a store. The request is to find the confidence level for the customer to buy milk when he also buys other items, based on his past purchase history. <code style="color:black">support_threshold</code> indicates the mininum frequency that should be considered from the transaction set. <code style="color:black">confidence_threshold</code> indicates the minumum confidence level that should be met. Support threshold and confidence threshold parameters are optional and are defaulted to 0.4 and 0.5 respectively.</p>
+  <p><i><b>Response:</b></i>
+  <pre><code style="color:black">[{
+	"itemset":["milk"],
+	"association_rules":[{
+			"frequent_item":["bread"],
+			"support":0.6,
+			"confidence":0.6666666666666666
+		},{
+			"frequent_item":["butter"],
+			"support":0.4,
+			"confidence":0.5
+		}]
+  }]</code></pre></p>
+  <p>The response indicates that if the customer buys bread, there is 66.67% chance that the customer also buys milk and if the customer buys butter, there is 50% chance that the customer also buys milk. Hence, it is more likely for the customer to buy milk when he buys bread than when he buys butter.</p>
+  <br>
+  <a href="#top">top</a>
+  <hr style="border:node;background-color:lightblue;height:2px">
+  
+  <br><br><br>
+  <h3 id="tradeoff" style="color:rgb(0,125,200)">Trade Off Analytics API</h3>
+  <p><pre><b>RESTful API</b>
+  Method: <kbd>POST</kbd>
+URL Path: <kbd>/api/analytics/tradeoff</kbd>
+
+<b>gRPC</b>
+ Package: <kbd>grpc.analytics</kbd>
+ Service: <kbd>ConsumerAnalytics</kbd>
+  Method: <kbd>analyzeTradeOff</kbd>
+  
+  Click <a href="#proto">here</a> for proto file</pre></p>
+  <br>
+  <p>Loosely based on Pareto optimization technique, the Trade Off Analytics API evaluates the decision candidates across multiple decision criteria and helps taking optimal decision.</p>
+  <p>Constraints with goal for each decision objective and the decision candidates are passed as input to the API. The result from the API is the ascending order of top candidates which has least variation from the ideal choice. The number of such candidates to be returned is determined by the <code style="color:black">limit</code> parameter in the request. If limit parameter is not passed, the entire set of candidates is returned in ascending order of variance.</p>
+  <p><i><b>Sample Request:</b></i>
+  <pre><code style="color:black">{
+"constraints" : {
+	"duration" : {"goal": "min"},
+	"adverse_effect" : {"goal": "min"},
+	"success" : {"goal": "max"},
+	"longivity" : {"goal": "max"},
+	"price" : {"goal": "min"}
+	},
+"candidates" : [
+	{
+	"name": "BTC",
+	"objectives": {"duration": 12, "adverse_effect": 5, "success": 50, "longivity": 10, "price": 8500}
+	},{
+	"name": "BIC followed by weekly syntinene",
+	"objectives": {"duration": 10, "adverse_effect": 3, "success": 70, "longivity": 6.5, "price": 11000}
+	},{
+	"name": "EG followed by syntinene every 2 weeks",
+	"objectives": {"duration": 7, "adverse_effect": 4, "success": 70, "longivity": 15, "price": 8750}
+	},{
+	"name": "FEG followed by weekly syntinene",
+	"objectives": {"duration": 7, "adverse_effect": 4, "success": 85, "longivity": 14.75, "price": 8750}
+	},{
+	"name": "EG followed by weekly syntinene",
+	"objectives": {"duration": 3, "adverse_effect": 1, "success": 65, "longivity": 5, "price": 8000}
+	},{
+	"name": "AG followed by donatel every 3 weeks",
+	"objectives": {"duration": 10, "adverse_effect": 3, "success": 90, "longivity": 6, "price": 11000}
+	},
+	...
+],
+"limit" : 4
+}</code></pre></p>
+  <p><code style="color:black">goal</code> indicates whether the objective should be maxmized or minimized to achieve the desired decision. The constraints can also be assigned with weightage. The sample request with weighted objectives is below:
+  <pre><code style="color:black">"constraints" : {
+		"duration" : {"goal": "min", "weight": 0.1},
+		"adverse_effect" : {"goal": "min", "weight": 0.3},
+		"success" : {"goal": "max", "weight": 0.3},
+		"longivity" : {"goal": "max", "weight": 0.15},
+		"price" : {"goal": "min", "weight": 0.15}
+		}
+  </code></pre>
+  In the above example, 10% of weightage is given to duration criteria, 30% weightage is given to adverse effect and success rate each and 15% weightage is given to longivity and price criteria each</p>
+  <p>Note that, the sum of all the weightage value should be 1.</p>
+  <p><i><b>Response:</b></i>
+  <pre><code style="color:black">[{
+"candidate":{
+	"name":"EG followed by weekly syntinene",
+	"objectives":{"duration":3,"adverse_effect":1,"success":65,"logivity":5,"price":8000}},
+"variance":0.34233870967741936
+},{
+"candidate":{
+	"name":"FEG followed by weekly syntinene",
+	"objectives":{"duration":7,"adverse_effect":4,"success":85,"logivity":14.75,"price":8750}},
+"variance":0.3518234767025089
+},
+...
+}]</code></pre></p>
+  <p><code style="color:black">variance</code> indicates how much the choice deviates from the ideal choice. The value is also dependent on the objective values of all the candidates. The least value of the variance indicates best optimal choice in the given set of candidates. In the above example, 'EG followed by weekly syntinene' is the best choice of the treatment for the given decision criteria and their relative weightage.</p>
+  <br>
+  <a href="#top">top</a>
+  <hr style="border:node;background-color:lightblue;height:2px">
+  
+  <br><br><br>
+  <h3 id="recommender" style="color:rgb(0,125,200)">Recommender API</h3>
+  <p><pre><b>RESTful API</b>
+  Method: <kbd>POST</kbd>
+URL Path: <kbd>/api/analytics/product</kbd>
+
+<b>gRPC</b>
+ Package: <kbd>grpc.analytics</kbd>
+ Service: <kbd>ConsumerAnalytics</kbd>
+  Method: <kbd>recommendProduct</kbd>
+  
+  Click <a href="#proto">here</a> for proto file</pre></p>
+  <br>
+  <p>Evaluates the frequency of each objective for all the candidate items from the past purchase history and identifies the candidates that have best trade-off among all the objectives of the product or the service</p>
+  <br>
+  <p><i><b>Sample Request:</b></i>
+  <pre><code style="color:black">{
+	"constraints" : {
+		"genre" : {"goal": "max"},
+		"casting" : {"goal": "max"},
+		"rating" : {"goal": "max"}
+		},
+	"transactions" : [
+		{"title": "Vettaiyadu Vilaiyadu", "attributes": {"genre": ["action", "thriller", "crime"], "casting": ["kamal", "jyothika"]}},
+		{"title": "Kadugu", "attributes": {"genre": ["action", "crime"], "casting": ["bharath", "rajendran"]}},
+		{"title": "Boss Baskaran", "attributes": {"genre": ["comedy", "romance"], "casting": ["arya", "nayandara"]}},
+		{"title": "Vishwaroopam", "attributes": {"genre": ["action", "thriller"], "casting": ["kamal", "andria"]}},
+		{"title": "Papanasam", "attributes": {"genre": ["crime", "thriller"], "casting": ["kamal", "gowthami"]}}
+	],
+	"candidates": [
+		{"title": "Panchathanthiram", "attributes": {"genre": ["comedy", "romance"], "casting": ["kamal", "simran"], "rating": 3.5}},
+		{"title": "Visaranai", "attributes": {"genre": ["crime", "thriller"], "casting": ["karthik"], "rating": 4.5}}
+	],
+	"limit" : 1
+}</code></pre></p>
+  <p>Like trade-off analytics API, <code style="color:black">constraints</code> can be weighted and the same condition for the weightage applies here as well. <code style="color:black">transactions</code> represents the purchase history with item name and the attributes that form the decision criteria. <code style="color:black">limit</code> indicates the number of recommended products to be returned. In absence limit parameter, the entire set of candidate is passed in descending order of importance i.e ascending order of variance</p>
+  <p><i><b>Response:</b></i>
+  <pre><code style="color:black">[
+  {
+	"candidate":{
+		"name":"Visaranai",
+		"objectives":{"genre":0.6666666666666666,"casting":0}},
+	"variance":0.5
+  }
+]</code></pre></p>
+  <br>
+  <a href="#top">top</a>
+  <hr style="border:node;background-color:lightblue;height:2px">
+  <br><br><br>
+
+  
+  <h3 id="proto" style="color:rgb(0,125,200)">gRPC Service Definition</h3>
+  <p>The effectiveness of affinity analytics API and recommender API greatly improve with larger set of historical transaction data or larger candidate set. For large data set in the request, gRPC is preferred over RESTful APIs as gRPC significantly reduces the footprint of the serialized data over network and reduces network latency.</p>
+  <p>Click <a href="./proto">here</a> to download proto file for gRPC service definition.</p>
+  <br>
+  <a href="#top">top</a>
+  <hr style="border:node;background-color:lightblue;height:2px">
+  <br><br><br>
+</div>
+</body>
+</html>
